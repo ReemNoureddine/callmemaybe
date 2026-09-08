@@ -1,0 +1,27 @@
+[project]
+name = "call-me-maybe"
+version = "0.1.0"
+description = "Translate natural-language requests into structured function calls."
+requires-python = ">=3.10"
+dependencies = [
+    "llm-sdk",
+    "numpy",
+    "pydantic",
+]
+
+[tool.uv.sources]
+llm-sdk = { path = "llm_sdk" }
+
+[tool.mypy]
+exclude = ["^\\.venv/", "^llm_sdk/"]
+
+[[tool.mypy.overrides]]
+module = "llm_sdk"
+ignore_missing_imports = true
+follow_imports = "skip"
+
+[dependency-groups]
+dev = [
+    "flake8>=7.3.0",
+    "mypy>=2.3.1",
+]
