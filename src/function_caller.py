@@ -7,9 +7,9 @@ from llm_sdk import Small_LLM_Model
 from src.constrained_decoding import (
     generate_closed_choice,
     generate_number_value,
-    generate_string_value,
 )
 from src.models import FunctionDefinition
+from src.string_candidates import build_string_candidates
 
 BOOLEAN_CANDIDATES = ["true", "false"]
 
@@ -98,9 +98,13 @@ def pick_function_call(
             )
             parameters[parameter_name] = value_text == "true"
         else:
-            value_text, input_ids = generate_string_value(
-                model, input_ids, token_strings
-            )
+            candidates = build_string_candidates(prompt, parameters)
+            if candidates:
+                value_text, input_ids = generate_closed_choice(
+                    model, input_ids, token_strings, candidates
+                )
+            else:
+                value_text = ""
             parameters[parameter_name] = value_text
             input_ids = input_ids + model.encode('"')[0].tolist()
 
