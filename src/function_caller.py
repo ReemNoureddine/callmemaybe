@@ -35,12 +35,12 @@ def build_seed_text(prompt: str, functions: list[FunctionDefinition]) -> str:
 def find_function(
     name: str, functions: list[FunctionDefinition]
 ) -> FunctionDefinition:
-    """Find the function definition matching `name`, default to the first."""
+    """Find the function definition matching `name`."""
     for function in functions:
         if function.name == name:
             return function
 
-    return functions[0]
+    raise ValueError(f"Unknown function name generated: {name!r}")
 
 
 def pick_function_call(
@@ -84,11 +84,14 @@ def pick_function_call(
             key_literal += '"'
         input_ids = input_ids + model.encode(key_literal)[0].tolist()
 
-        if parameter_type == "number":
+        if parameter_type in ("number", "integer"):
             value_text, input_ids = generate_number_value(
                 model, input_ids, token_strings
             )
-            parameters[parameter_name] = float(value_text)
+            if parameter_type == "integer":
+                parameters[parameter_name] = int(float(value_text))
+            else:
+                parameters[parameter_name] = float(value_text)
         elif parameter_type == "boolean":
             value_text, input_ids = generate_closed_choice(
                 model, input_ids, token_strings, BOOLEAN_CANDIDATES

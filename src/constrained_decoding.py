@@ -9,6 +9,7 @@ from llm_sdk import Small_LLM_Model
 
 NUMBER_CHARACTERS = "0123456789.-"
 STOP_MARKERS = [",", "}", " ", "\n"]
+REPEAT_CHECK_LENGTH = 20
 
 
 def build_token_strings(model: Small_LLM_Model) -> list[str]:
@@ -53,7 +54,7 @@ def generate_closed_choice(
     working_ids = list(input_ids)
     generated_text = ""
 
-    for _ in range(max_tokens):
+    for step in range(max_tokens):
         if generated_text in candidates:
             break
 
@@ -87,7 +88,7 @@ def generate_number_value(
     working_ids = list(input_ids)
     generated_text = ""
 
-    for _ in range(max_tokens):
+    for step in range(max_tokens):
         logits = model.get_logits_from_input_ids(working_ids)
 
         allowed_token_ids = []
@@ -115,7 +116,7 @@ def generate_number_value(
         generated_text += token_strings[best_token_id]
         working_ids.append(best_token_id)
 
-    if generated_text == "":
+    if generated_text in ("", "-"):
         generated_text = "0"
 
     return generated_text, working_ids
@@ -131,7 +132,7 @@ def generate_string_value(
     working_ids = list(input_ids)
     generated_text = ""
 
-    for _ in range(max_tokens):
+    for step in range(max_tokens):
         logits = model.get_logits_from_input_ids(working_ids)
 
         allowed_token_ids = []
@@ -139,6 +140,8 @@ def generate_string_value(
         for token_id in range(len(token_strings)):
             text = token_strings[token_id]
             if text == '"':
+                stop_token_ids.append(token_id)
+            elif "\n" in text or "\\n" in text:
                 stop_token_ids.append(token_id)
             elif text != "" and '"' not in text:
                 allowed_token_ids.append(token_id)
@@ -154,5 +157,12 @@ def generate_string_value(
 
         generated_text += token_strings[best_token_id]
         working_ids.append(best_token_id)
+
+        if len(generated_text) >= REPEAT_CHECK_LENGTH * 2:
+            recent_chunk = generated_text[-REPEAT_CHECK_LENGTH:]
+            earlier_text = generated_text[:-REPEAT_CHECK_LENGTH]
+            if recent_chunk in earlier_text:
+                generated_text = generated_text[:-REPEAT_CHECK_LENGTH]
+                break
 
     return generated_text, working_ids

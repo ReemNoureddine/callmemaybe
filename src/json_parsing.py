@@ -1,4 +1,3 @@
-"""Load and validate the project input files."""
 
 import json
 from pathlib import Path

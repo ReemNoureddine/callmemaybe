@@ -3,7 +3,6 @@
 import argparse
 import json
 from pathlib import Path
-import sys
 
 from llm_sdk import Small_LLM_Model
 
@@ -80,6 +79,7 @@ def main() -> None:
     for result in results:
         output_data.append(result.model_dump())
 
+    args.output.parent.mkdir(parents=True, exist_ok=True)
     with open(args.output, "w", encoding="utf-8") as file:
         json.dump(output_data, file, indent=2)
 
