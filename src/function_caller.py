@@ -1,5 +1,6 @@
 """Choose which function to call for a natural language prompt."""
 
+import re
 from typing import Any
 
 from llm_sdk import Small_LLM_Model
@@ -12,6 +13,27 @@ from src.models import FunctionDefinition
 from src.string_candidates import build_string_candidates
 
 BOOLEAN_CANDIDATES = ["true", "false"]
+
+_NEGATIVE_NUMBER = re.compile(r"-\s*(\d+(?:\.\d+)?)")
+
+
+def apply_sign_from_prompt(prompt: str, value_text: str) -> str:
+    """Recover a dropped minus sign for `value_text` by checking the prompt.
+
+    Digit-by-digit generation picks the single highest-scoring token at
+    each step, but the minus-sign token is never competitive against a
+    plain digit even when the number is negative, so the generator always
+    emits an unsigned magnitude. Recover the sign separately by checking
+    whether the prompt itself writes this exact magnitude as negative.
+    """
+    if not value_text or value_text.startswith("-"):
+        return value_text
+
+    for match in _NEGATIVE_NUMBER.finditer(prompt):
+        if float(match.group(1)) == float(value_text):
+            return "-" + value_text
+
+    return value_text
 
 
 def build_seed_text(prompt: str, functions: list[FunctionDefinition]) -> str:
@@ -88,6 +110,7 @@ def pick_function_call(
             value_text, input_ids = generate_number_value(
                 model, input_ids, token_strings
             )
+            value_text = apply_sign_from_prompt(prompt, value_text)
             if parameter_type == "integer":
                 parameters[parameter_name] = int(float(value_text))
             else:

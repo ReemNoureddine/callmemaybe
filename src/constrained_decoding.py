@@ -94,8 +94,12 @@ def generate_number_value(
         stop_token_ids = []
         for token_id in range(len(token_strings)):
             text = token_strings[token_id]
-            is_number_text = text != ""
-            for character in text:
+            # The tokenizer sometimes fuses a leading word-boundary space
+            # into the token (e.g. " -" for a minus sign), so a number
+            # token can carry one without it being part of the number.
+            digits_text = text[1:] if text.startswith(" ") else text
+            is_number_text = digits_text != ""
+            for character in digits_text:
                 if character not in NUMBER_CHARACTERS:
                     is_number_text = False
             if text in STOP_MARKERS:
@@ -112,7 +116,8 @@ def generate_number_value(
         if best_token_id in stop_token_ids:
             break
 
-        generated_text += token_strings[best_token_id]
+        text = token_strings[best_token_id]
+        generated_text += text[1:] if text.startswith(" ") else text
         working_ids.append(best_token_id)
 
     if generated_text in ("", "-"):
