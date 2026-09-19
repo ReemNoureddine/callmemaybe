@@ -67,9 +67,16 @@ def main() -> None:
 
     results = []
     for prompt_input in prompts:
-        name, parameters = pick_function_call(
-            prompt_input.prompt, functions, model, token_strings
-        )
+        try:
+            name, parameters = pick_function_call(
+                prompt_input.prompt, functions, model, token_strings
+            )
+        except Exception as error:
+            print(
+                f"Error: could not process prompt {prompt_input.prompt!r}: "
+                f"{error}"
+            )
+            continue
         result = FunctionCallResult(
             prompt=prompt_input.prompt, name=name, parameters=parameters
         )
